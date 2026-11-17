@@ -88,12 +88,11 @@ def parse_csv(content: bytes, delimiter: Delimiter) -> tuple[list[str], list[lis
             else:
                 rows.append([value or None for value in row])
             last_line = reader.line_num
-    except csv.Error as e:
-        if "unexpected end of data" in str(e):
-            raise InvalidFileError(f"A quote (\") in the row starting on line {last_line + 1} is never closed.") from None
+    except csv.Error:
         raise InvalidFileError(
-            f"Line {reader.line_num} has a quote (\") in the wrong place. "
-            'A value that contains quotes must be wrapped in quotes, with each inner quote doubled ("").'
+            f"There is a quote (\") problem in the row starting on line {last_line + 1}: a quote is never closed, "
+            "or a value contains a quote but isn't wrapped in quotes. "
+            'Wrap such values in quotes and double any inner quotes ("").'
         ) from None
 
     if columns is None:
