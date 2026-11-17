@@ -49,7 +49,7 @@ test("shows the backend's error for an invalid CSV and creates nothing", async (
   const dialog = await uploadCsv(page, `${name}.csv`, 'name,score\nAda,90,extra\n')
 
   await expect(dialog.getByText('1 failed')).toBeVisible()
-  await expect(dialog.getByText(/Line 2 has 3 values but the header has 2/)).toBeVisible()
+  await expect(dialog.getByText(/Line 2 has 3 values, but the header has 2 columns/)).toBeVisible()
   await expect(dialog.getByRole('button', { name: 'Retry failed' })).toBeVisible()
 
   await dialog.getByRole('button', { name: 'Done' }).click()
