@@ -17,4 +17,5 @@ def register_error_handlers(app: FastAPI) -> None:
 
 
 def _to_response(request: Request, exc: Exception) -> JSONResponse:
-    return JSONResponse(status_code=STATUS_CODES[type(exc)], content={"detail": str(exc)})
+    status = next(STATUS_CODES[t] for t in type(exc).__mro__ if t in STATUS_CODES)
+    return JSONResponse(status_code=status, content={"detail": str(exc)})

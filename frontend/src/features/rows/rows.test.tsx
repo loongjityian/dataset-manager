@@ -135,7 +135,7 @@ describe('adding a row', () => {
     await waitFor(() => expect(screen.getByLabelText('order_id of row 51')).toHaveTextContent('SO-NEW'))
     expect(screen.getByLabelText('amount of row 51')).toHaveTextContent('NULL')
     expect(backend.requests).toEqual([
-      { method: 'POST', path: `/datasets/${sales.id}/rows`, body: { order_id: null, amount: null } },
+      { method: 'POST', path: `/datasets/${sales.id}/rows`, body: {} },
       { method: 'PATCH', path: `/datasets/${sales.id}/rows/51`, body: { order_id: 'SO-NEW' } },
     ])
   })
