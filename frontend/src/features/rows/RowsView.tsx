@@ -34,11 +34,11 @@ export function RowsView({ datasetId, columns, page, size, setPage, setSize }: P
     if (lastPage !== null && page > lastPage) setPage(lastPage, { replace: true })
   }, [lastPage, page, setPage])
 
-  // A new row is all NULL, sent as every column set to null. It lands last, so show
+  // A new row is all NULL, sent as no values. It lands last, so show
   // the last page and start editing its first cell.
   const addRow = async () => {
     try {
-      const created = await insert.mutateAsync(Object.fromEntries(columns.map((c) => [c, null])))
+      const created = await insert.mutateAsync({})
       if (data) setPage(Math.ceil((data.total + 1) / size))
       setEditing({ rowId: created._id, column: columns[0] })
     } catch (e) {
