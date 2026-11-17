@@ -29,6 +29,18 @@ def test_header_only_gives_no_rows() -> None:
     assert parse_csv(b"id,name\n", ",") == (["id", "name"], [])
 
 
+def test_preserves_multiline_quotes_unicode_and_all_null_rows() -> None:
+    content = 'name,note\r\nZoë,"first\r\nsecond ""quoted"""\r\n,\r\n\r\n'.encode()
+    assert parse_csv(content, ",") == (
+        ["name", "note"], [["Zoë", 'first\r\nsecond "quoted"'], [None, None]],
+    )
+
+
+def test_accepts_cells_over_default_csv_field_limit() -> None:
+    value = "x" * 131073
+    assert parse_csv(f"note\n{value}\n".encode(), ",") == (["note"], [[value]])
+
+
 @pytest.mark.parametrize(
     ("content", "error"),
     [

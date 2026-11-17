@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from tests.helpers import MISSING_ID, upload
@@ -22,18 +23,27 @@ def test_get_returns_columns_without_id(client: TestClient) -> None:
 
 
 def test_rename_trims_and_saves(client: TestClient) -> None:
-    dataset_id = upload(client, "sales.csv", b"a\n")
+    dataset_id = upload(client, "sales.csv", b"a\n1\n")
 
     response = client.patch(f"/datasets/{dataset_id}", json={"display_name": "  Sales 2026 "})
 
     assert response.json()["display_name"] == "Sales 2026"
     assert client.get(f"/datasets/{dataset_id}").json()["display_name"] == "Sales 2026"
+    assert client.get(f"/datasets/{dataset_id}/rows").json()["rows"] == [{"_id": 1, "a": "1"}]
 
 
 def test_rename_rejects_blank_name(client: TestClient) -> None:
     dataset_id = upload(client, "sales.csv", b"a\n")
 
     assert client.patch(f"/datasets/{dataset_id}", json={"display_name": "  "}).status_code == 422
+
+
+@pytest.mark.parametrize(("length", "status"), [(255, 200), (256, 422)])
+def test_rename_length_boundary(client: TestClient, length: int, status: int) -> None:
+    dataset_id = upload(client, "sales.csv", b"a\n1\n")
+    name = "x" * length
+    assert client.patch(f"/datasets/{dataset_id}", json={"display_name": name}).status_code == status
+    assert client.get(f"/datasets/{dataset_id}").json()["display_name"] == (name if status == 200 else "sales")
 
 
 def test_delete_removes_dataset(client: TestClient) -> None:

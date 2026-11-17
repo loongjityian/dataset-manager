@@ -35,12 +35,17 @@ def test_insert_stores_values_as_text(client: TestClient, rows_url: str) -> None
 
     assert response.status_code == 200
     assert response.json() == {"_id": 4, "order_id": "4", "amount": "12.5"}
+    page = client.get(rows_url).json()
+    assert page["rows"][-1] == response.json()
+    assert page["total"] == 4
+    assert client.get(rows_url.removesuffix("/rows")).json()["row_count"] == 4
 
 
-def test_insert_converts_booleans_and_blanks(client: TestClient, rows_url: str) -> None:
-    row = client.post(rows_url, json={"order_id": True, "amount": ""}).json()
+@pytest.mark.parametrize(("value", "expected"), [(True, "true"), (False, "false"), (0, "0")])
+def test_insert_converts_scalars_and_blanks(client: TestClient, rows_url: str, value: bool | int, expected: str) -> None:
+    row = client.post(rows_url, json={"order_id": value, "amount": ""}).json()
 
-    assert row == {"_id": 4, "order_id": "true", "amount": None}
+    assert row == {"_id": 4, "order_id": expected, "amount": None}
 
 
 def test_insert_missing_columns_are_null(client: TestClient, rows_url: str) -> None:
@@ -55,6 +60,9 @@ def test_update_changes_only_given_columns(client: TestClient, rows_url: str) ->
     response = client.patch(f"{rows_url}/1", json={"amount": None})
 
     assert response.json() == {"_id": 1, "order_id": "1", "amount": None}
+    page = client.get(rows_url).json()
+    assert page["rows"][0] == response.json()
+    assert page["rows"][2] == {"_id": 3, "order_id": "3", "amount": "30"}
 
 
 def test_delete_returns_row_and_removes_it(client: TestClient, rows_url: str) -> None:
@@ -69,6 +77,11 @@ def test_delete_returns_row_and_removes_it(client: TestClient, rows_url: str) ->
 def test_unknown_columns_are_400(client: TestClient, rows_url: str, body: dict[str, object]) -> None:
     assert client.post(rows_url, json=body).status_code == 400
     assert client.patch(f"{rows_url}/1", json=body).status_code == 400
+    assert client.get(rows_url).json()["rows"] == [
+        {"_id": 1, "order_id": "1", "amount": "10"},
+        {"_id": 2, "order_id": "2", "amount": None},
+        {"_id": 3, "order_id": "3", "amount": "30"},
+    ]
 
 
 @pytest.mark.parametrize("body", [{"amount": {"nested": 1}}, {"amount": [1, 2]}])
