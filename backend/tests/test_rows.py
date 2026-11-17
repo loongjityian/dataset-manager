@@ -47,6 +47,10 @@ def test_insert_missing_columns_are_null(client: TestClient, rows_url: str) -> N
     assert client.post(rows_url, json={"order_id": "4"}).json()["amount"] is None
 
 
+def test_insert_empty_body_gives_all_null_row(client: TestClient, rows_url: str) -> None:
+    assert client.post(rows_url, json={}).json() == {"_id": 4, "order_id": None, "amount": None}
+
+
 def test_update_changes_only_given_columns(client: TestClient, rows_url: str) -> None:
     response = client.patch(f"{rows_url}/1", json={"amount": None})
 
@@ -67,10 +71,14 @@ def test_unknown_columns_are_400(client: TestClient, rows_url: str, body: dict[s
     assert client.patch(f"{rows_url}/1", json=body).status_code == 400
 
 
-@pytest.mark.parametrize("body", [{}, {"amount": {"nested": 1}}, {"amount": [1, 2]}])
+@pytest.mark.parametrize("body", [{"amount": {"nested": 1}}, {"amount": [1, 2]}])
 def test_invalid_bodies_are_422(client: TestClient, rows_url: str, body: dict[str, object]) -> None:
     assert client.post(rows_url, json=body).status_code == 422
     assert client.patch(f"{rows_url}/1", json=body).status_code == 422
+
+
+def test_empty_update_is_422(client: TestClient, rows_url: str) -> None:
+    assert client.patch(f"{rows_url}/1", json={}).status_code == 422
 
 
 def test_unknown_row_or_dataset_is_404(client: TestClient, rows_url: str) -> None:
