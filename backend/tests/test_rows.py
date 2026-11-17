@@ -42,7 +42,7 @@ def test_insert_stores_values_as_text(client: TestClient, rows_url: str) -> None
 
 
 @pytest.mark.parametrize(("value", "expected"), [(True, "true"), (False, "false"), (0, "0")])
-def test_insert_converts_booleans_and_blanks(client: TestClient, rows_url: str, value: bool | int, expected: str) -> None:
+def test_insert_converts_scalars_and_blanks(client: TestClient, rows_url: str, value: bool | int, expected: str) -> None:
     row = client.post(rows_url, json={"order_id": value, "amount": ""}).json()
 
     assert row == {"_id": 4, "order_id": expected, "amount": None}

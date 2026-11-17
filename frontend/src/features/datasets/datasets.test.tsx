@@ -34,7 +34,7 @@ describe('datasets', () => {
 
     const heading = await screen.findByRole('heading', { name: 'No datasets' })
     expect(heading).toBeInTheDocument()
-    expect(within(heading.parentElement!).getByRole('button', { name: 'Upload CSV' })).toBeEnabled()
+    expect(within(screen.getByRole('main')).getByRole('button', { name: 'Upload CSV' })).toBeEnabled()
   })
 
   it('says when a dataset does not exist', async () => {
