@@ -102,9 +102,9 @@ function CellEditor({ label, initial, onSave, onClose }: EditorProps) {
         }}
         placeholder="NULL"
         wrap="off"
-        // Laid over the cell at its exact size; longer text scrolls inside it.
+        // Laid over the cell at its exact size; longer text scrolls with the caret, without scrollbars.
         className={cx(
-          'absolute inset-0.5 min-w-0 resize-none bg-surface px-2.5 py-1.5 font-mono leading-5 text-[13px] placeholder:text-faint focus:outline-none',
+          'absolute inset-0.5 min-w-0 resize-none overflow-hidden bg-surface px-2.5 py-1.5 font-mono leading-5 text-[13px] placeholder:text-faint focus:outline-none',
           saving && 'text-muted',
         )}
       />
