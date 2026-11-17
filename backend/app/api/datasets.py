@@ -19,7 +19,11 @@ router = APIRouter(prefix="/datasets", tags=["datasets"])
 @router.post("")
 def upload_datasets(
     conn: Connection,
-    files: Annotated[list[UploadFile], File(description="One or more CSV files.")],
+    files: Annotated[list[UploadFile], File(
+        description="One or more CSV files.",
+        # Swagger UI only shows a file picker for format: binary.
+        json_schema_extra={"items": {"type": "string", "format": "binary"}},
+    )],
     delimiter: Annotated[Delimiter, Form()] = ",",
 ) -> list[UploadResult]:
     """Create one dataset per file. Each file succeeds or fails on its own."""

@@ -31,12 +31,13 @@ def test_header_only_gives_no_rows() -> None:
         (b"name\nJos\xe9\n", "not UTF-8"),
         (b"", "empty"),
         (b"\n\n", "empty"),
-        (b"a,b\n1,2\n3\n", "Line 3 has 1 values"),
-        (b'name\n"Alice\nBob\n', "could not be read"),  # unclosed quote
-        (b'name\n"Alice"extra\n', "could not be read"),  # text after closing quote
-        (b"a,,c\n", "empty column name"),
+        (b"a,b\n1,2\n3\n", "Line 3 has 1 values, but the header has 2 columns"),
+        (b'a,b\n1,2\n"Alice,1\nBob,2\n', "Line 3 opens a quote"),  # unclosed quote
+        (b'name\n"Alice"extra\n', "Line 2 has a quote"),  # text after closing quote
+        (b"a;b\n1;2\n", "separated by ';'"),  # wrong delimiter chosen
+        (b"a,,c\n", "no name for column 2"),
         (b"_id,name\n", "'_id'"),
-        (b"Name,name\n", "duplicate"),
+        (b"Name,name,x\n", "duplicate column names: Name, name"),
         (",".join(f"c{i}" for i in range(2000)).encode(), "maximum is 1999"),
     ],
 )
