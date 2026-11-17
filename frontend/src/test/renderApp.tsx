@@ -32,5 +32,6 @@ export function renderApp(path = '/') {
     user,
     /** The current path plus query string. */
     location: () => router.state.location.pathname + router.state.location.search,
+    back: () => router.navigate(-1),
   }
 }

@@ -67,6 +67,21 @@ describe('datasets', () => {
     expect(backend.requests).toEqual([])
   })
 
+  it('says a deleted dataset is gone when going Back to it', async () => {
+    const backend = setupBackend()
+    const sales = backend.addDataset('sales', ['order_id'])
+    const app = renderApp(`/datasets/${sales.id}`)
+    const { user } = app
+
+    await user.click(await screen.findByRole('tab', { name: /Schema/ }))
+    await user.click(screen.getByRole('button', { name: 'Delete dataset' }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete dataset' }))
+    await screen.findByText('No datasets')
+    await app.back()
+
+    expect(await screen.findByText('Dataset not found')).toBeInTheDocument()
+  })
+
   it('deletes a dataset after confirmation and opens the next one', async () => {
     const backend = setupBackend()
     const customers = backend.addDataset('customers', ['name'])

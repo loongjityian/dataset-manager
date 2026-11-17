@@ -37,6 +37,17 @@ describe('editing a cell', () => {
     expect(backend.requests[0].body).toEqual({ amount: null })
   })
 
+  it('keeps line breaks in a value', async () => {
+    const { backend, sales } = setupSales([['SO-1', 'first\nsecond']])
+    const { user } = renderApp(`/datasets/${sales.id}`)
+
+    await user.dblClick(await screen.findByLabelText('amount of row 1'))
+    await user.type(screen.getByRole('textbox', { name: 'amount of row 1' }), '!{Enter}')
+
+    await waitFor(() => expect(backend.requests).toHaveLength(1))
+    expect(backend.requests[0].body).toEqual({ amount: 'first\nsecond!' })
+  })
+
   it('cancels with Escape without saving', async () => {
     const { backend, sales } = setupSales()
     const { user } = renderApp(`/datasets/${sales.id}`)

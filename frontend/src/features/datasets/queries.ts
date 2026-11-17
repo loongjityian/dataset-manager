@@ -27,8 +27,9 @@ export function useDeleteDataset() {
   return useMutation({
     mutationFn: deleteDataset,
     onSuccess: (deleted) => {
-      // Drop it from the list now; its detail and rows queries expire once nothing shows them.
       queryClient.setQueryData<Dataset[]>(queryKeys.datasets, (list) => list?.filter((d) => d.id !== deleted.id))
+      // Not refetched now; if it's opened again (e.g. with Back), the refetch gets a 404.
+      void queryClient.invalidateQueries({ queryKey: queryKeys.dataset(deleted.id), refetchType: 'none' })
     },
   })
 }

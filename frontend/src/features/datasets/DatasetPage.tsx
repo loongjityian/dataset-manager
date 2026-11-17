@@ -31,7 +31,8 @@ function DatasetScreen({ id }: { id: string }) {
   const remove = useDeleteDataset()
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
-  if (!dataset) {
+  // A 404 wins over a cached copy, e.g. going Back to a deleted dataset.
+  if (!dataset || isNotFound(error)) {
     if (!error) return <HeaderSkeleton />
     return (
       <>

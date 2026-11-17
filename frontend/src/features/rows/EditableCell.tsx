@@ -53,7 +53,7 @@ function CellEditor({ label, initial, onSave, onClose }: EditorProps) {
   const [draft, setDraft] = useState(initial)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   // Closing unmounts the input, which fires a blur; this stops that blur from saving again.
   const closed = useRef(false)
 
@@ -80,7 +80,8 @@ function CellEditor({ label, initial, onSave, onClose }: EditorProps) {
 
   return (
     <>
-      <input
+      {/* A textarea, because an <input> drops the line breaks a CSV value can contain. */}
+      <textarea
         ref={inputRef}
         autoFocus
         aria-label={label}
@@ -89,7 +90,10 @@ function CellEditor({ label, initial, onSave, onClose }: EditorProps) {
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => void commit(null)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') void commit(null)
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            void commit(null)
+          }
           if (e.key === 'Tab') {
             e.preventDefault()
             void commit(e.shiftKey ? -1 : 1)
@@ -97,9 +101,10 @@ function CellEditor({ label, initial, onSave, onClose }: EditorProps) {
           if (e.key === 'Escape') close(null)
         }}
         placeholder="NULL"
+        wrap="off"
         // Laid over the cell at its exact size; longer text scrolls inside it.
         className={cx(
-          'absolute inset-0.5 min-w-0 bg-surface px-2.5 font-mono text-[13px] placeholder:text-faint focus:outline-none',
+          'absolute inset-0.5 min-w-0 resize-none bg-surface px-2.5 py-1.5 font-mono leading-5 text-[13px] placeholder:text-faint focus:outline-none',
           saving && 'text-muted',
         )}
       />
