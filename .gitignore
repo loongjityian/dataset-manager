@@ -2,3 +2,4 @@ doc/
 .venv/
 __pycache__/
 *.py[cod]
+data/
