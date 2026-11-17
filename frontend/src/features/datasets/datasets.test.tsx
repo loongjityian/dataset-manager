@@ -4,6 +4,18 @@ import { renderApp, setupBackend } from '../../test/renderApp'
 import { trackReads } from '../../test/server'
 
 describe('datasets', () => {
+  it('cancels dataset deletion without changing the dataset', async () => {
+    const backend = setupBackend()
+    const sales = backend.addDataset('sales', ['order_id'], [['SO-1']])
+    const { user } = renderApp(`/datasets/${sales.id}`)
+    await user.click(await screen.findByRole('button', { name: 'Delete dataset' }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'sales' })).toBeInTheDocument()
+    expect(backend.rows(sales.id)).toEqual([{ _id: 1, order_id: 'SO-1' }])
+    expect(backend.requests).toEqual([])
+  })
+
   it('opens the newest dataset and shows its rows', async () => {
     const backend = setupBackend()
     backend.addDataset('customers', ['name'], [['Aisha']])
@@ -20,8 +32,9 @@ describe('datasets', () => {
     setupBackend()
     renderApp('/')
 
-    expect(await screen.findByText('No datasets')).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: 'Upload CSV' })).toHaveLength(2)
+    const heading = await screen.findByRole('heading', { name: 'No datasets' })
+    expect(heading).toBeInTheDocument()
+    expect(within(heading.parentElement!).getByRole('button', { name: 'Upload CSV' })).toBeEnabled()
   })
 
   it('says when a dataset does not exist', async () => {

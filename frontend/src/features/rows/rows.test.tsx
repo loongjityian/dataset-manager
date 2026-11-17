@@ -12,17 +12,26 @@ function setupSales(rows: (string | null)[][] = [['SO-1', '10'], ['SO-2', null]]
 }
 
 describe('editing a cell', () => {
-  it('saves only that column and shows the new value', async () => {
+  it.each(['enter', 'outside'])('saves only the changed column with %s', async (action) => {
     const { backend, sales } = setupSales()
     const { user } = renderApp(`/datasets/${sales.id}`)
-
     await user.dblClick(await screen.findByLabelText('amount of row 1'))
-    const input = screen.getByRole('textbox', { name: 'amount of row 1' })
-    await user.clear(input)
-    await user.type(input, '12.50{Enter}')
+    await user.clear(screen.getByRole('textbox', { name: 'amount of row 1' }))
+    await user.type(screen.getByRole('textbox', { name: 'amount of row 1' }), '25')
+    if (action === 'enter') await user.keyboard('{Enter}')
+    else await user.click(screen.getByRole('heading', { name: 'sales' }))
+    await waitFor(() => expect(screen.getByLabelText('amount of row 1')).toHaveTextContent('25'))
+    expect(backend.requests).toEqual([{ method: 'PATCH', path: `/datasets/${sales.id}/rows/1`, body: { amount: '25' } }])
+  })
 
-    await waitFor(() => expect(screen.getByLabelText('amount of row 1')).toHaveTextContent('12.50'))
-    expect(backend.requests).toEqual([{ method: 'PATCH', path: `/datasets/${sales.id}/rows/1`, body: { amount: '12.50' } }])
+  it.each(['enter', 'outside'])('closes an unchanged edit with %s without saving', async (action) => {
+    const { backend, sales } = setupSales()
+    const { user } = renderApp(`/datasets/${sales.id}`)
+    await user.dblClick(await screen.findByLabelText('amount of row 1'))
+    if (action === 'enter') await user.keyboard('{Enter}')
+    else await user.click(screen.getByRole('heading', { name: 'sales' }))
+    expect(screen.queryByRole('textbox', { name: 'amount of row 1' })).not.toBeInTheDocument()
+    expect(backend.requests).toEqual([])
   })
 
   it('stores an emptied cell as NULL', async () => {
@@ -163,6 +172,27 @@ describe('keeping pages in sync', () => {
 })
 
 describe('deleting a row', () => {
+  it('keeps the row and count when deletion fails', async () => {
+    const { sales } = setupSales()
+    server.use(http.delete('/api/datasets/:id/rows/:rowId', () => HttpResponse.json({ detail: 'Could not delete row' }, { status: 500 })))
+    const { user } = renderApp(`/datasets/${sales.id}`)
+    await user.click(await screen.findByRole('button', { name: 'Delete row 1' }))
+    expect(await screen.findByText('Could not delete row')).toBeInTheDocument()
+    expect(screen.getByLabelText('order_id of row 1')).toHaveTextContent('SO-1')
+    expect(screen.getByRole('tab', { name: /Rows/ })).toHaveTextContent('2')
+  })
+
+  it('keeps page 1 after deleting the only row and can add again', async () => {
+    const { sales } = setupSales([['SO-1', '10']])
+    const app = renderApp(`/datasets/${sales.id}`)
+    await app.user.click(await screen.findByRole('button', { name: 'Delete row 1' }))
+    expect(await screen.findByText('No rows yet')).toBeInTheDocument()
+    expect(app.location()).toBe(`/datasets/${sales.id}`)
+    await app.user.click(screen.getAllByRole('button', { name: 'Add row' })[0])
+    expect(await screen.findByRole('textbox', { name: /order_id of row/ })).toHaveFocus()
+    expect(app.location()).toBe(`/datasets/${sales.id}`)
+  })
+
   it('deletes straight away without asking', async () => {
     const { backend, sales } = setupSales()
     const { user } = renderApp(`/datasets/${sales.id}`)
