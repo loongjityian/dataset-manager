@@ -1,1 +1,99 @@
 @import "tailwindcss";
+
+:root {
+  --paper: #f5f3ee;
+  --surface: #fffefb;
+  --sunken: #edeae2;
+  --ink: #1c1b18;
+  --muted: #6b675e;
+  --faint: #9e998d;
+  --line: #e3dfd5;
+  --line-strong: #d0cbbe;
+  --accent: #c4431a;
+  --accent-soft: #f7e3d8;
+  --ok: #2e7a4c;
+  --danger: #b3261e;
+  --danger-soft: #f9e2df;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #141413;
+    --surface: #1b1b19;
+    --sunken: #242421;
+    --ink: #ecebe5;
+    --muted: #a19d93;
+    --faint: #6f6c64;
+    --line: #2d2c29;
+    --line-strong: #3b3a36;
+    --accent: #ef7a47;
+    --accent-soft: #3a2219;
+    --ok: #4ea872;
+    --danger: #e5554b;
+    --danger-soft: #3a1c1a;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-ok: var(--ok);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SFMono-Regular", monospace;
+  --font-display: "Bricolage Grotesque Variable", var(--font-sans);
+}
+
+.font-display {
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.paper-grid {
+  background-image: radial-gradient(var(--line-strong) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+.shimmer {
+  background: linear-gradient(90deg, var(--sunken) 0%, var(--line) 50%, var(--sunken) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.rise { animation: rise 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.fade-in, dialog::backdrop { animation: fade-in 0.2s ease-out both; }
+
+@keyframes shimmer { to { background-position: -200% 0; } }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+@keyframes fade-in { from { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
