@@ -5,7 +5,7 @@ from fastapi import APIRouter, Path, Query
 
 from app.db.database import Connection
 from app.domain import Row
-from app.schemas.rows import RowsPage, RowValues
+from app.schemas.rows import NewRowValues, RowsPage, RowValues
 from app.services import rows as service
 
 router = APIRouter(prefix="/datasets/{dataset_id}/rows", tags=["rows"])
@@ -26,8 +26,8 @@ def list_rows(
 
 
 @router.post("")
-def insert_row(conn: Connection, dataset_id: UUID, values: RowValues) -> Row:
-    """Insert a row. Columns left out are stored as NULL."""
+def insert_row(conn: Connection, dataset_id: UUID, values: NewRowValues) -> Row:
+    """Insert a row. Columns left out are stored as NULL; `{}` inserts an empty row."""
     return service.insert_row(conn, str(dataset_id), values)
 
 

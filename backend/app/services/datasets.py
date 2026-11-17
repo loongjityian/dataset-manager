@@ -2,6 +2,7 @@ import csv
 import io
 import sqlite3
 import uuid
+from collections import Counter
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -67,32 +68,56 @@ def parse_csv(content: bytes, delimiter: Delimiter) -> tuple[list[str], list[lis
 
     # strict: malformed quoting raises csv.Error instead of silently merging or changing values.
     reader = csv.reader(io.StringIO(text, newline=""), delimiter=delimiter, strict=True)
+    columns: list[str] | None = None
+    rows: list[list[str | None]] = []
+    last_line = 0  # the line the previous row ended on, so errors can point at where a row starts
     try:
-        columns = next((row for row in reader if row), None)  # first non-blank line
-        if not columns:
-            raise InvalidFileError("File is empty.")
-        validate_columns(columns)
-
-        rows: list[list[str | None]] = []
         for row in reader:
             if not row:  # blank line
-                continue
-            if len(row) != len(columns):
-                raise InvalidFileError(f"Line {reader.line_num} has {len(row)} values but the header has {len(columns)}. If values are separated by ';', upload with delimiter=';'.")
-            rows.append([value or None for value in row])
-    except csv.Error as e:
-        raise InvalidFileError(f"Line {reader.line_num} could not be read: {e}") from None
+                pass
+            elif columns is None:
+                columns = row
+                validate_columns(columns)
+                if len(columns) == 1:
+                    _check_delimiter(text, delimiter)
+            elif len(row) != len(columns):
+                raise InvalidFileError(
+                    f"Line {reader.line_num} has {len(row)} values, but the header has {len(columns)} columns. "
+                    "Check that line for a missing or extra separator, or an unquoted value that contains one."
+                )
+            else:
+                rows.append([value or None for value in row])
+            last_line = reader.line_num
+    except csv.Error:
+        raise InvalidFileError(
+            f"There is a quote (\") problem in the row starting on line {last_line + 1}: a quote is never closed, "
+            "or a value contains a quote but isn't wrapped in quotes. "
+            'Wrap such values in quotes and double any inner quotes ("").'
+        ) from None
 
+    if columns is None:
+        raise InvalidFileError("File is empty.")
     return columns, rows
+
+
+def _check_delimiter(text: str, delimiter: Delimiter) -> None:
+    """Reject a one-column header that splits into several columns with the other delimiter."""
+    other = ";" if delimiter == "," else ","
+    header = next((row for row in csv.reader(io.StringIO(text, newline=""), delimiter=other) if row), [])
+    if len(header) > 1:
+        raise InvalidFileError(f"Only one column was found. The values look separated by '{other}'; upload again with '{other}' as the delimiter.")
 
 
 def validate_columns(columns: list[str]) -> None:
     if len(columns) > MAX_COLUMNS:
         raise InvalidFileError(f"Header has {len(columns)} columns; the maximum is {MAX_COLUMNS}.")
+    empty = [str(i) for i, c in enumerate(columns, 1) if not c]
+    if empty:
+        raise InvalidFileError(f"Header has no name for column {', '.join(empty)}. Every column needs a name.")
     names = [c.lower() for c in columns]  # SQLite column names are case-insensitive.
-    if "" in names:
-        raise InvalidFileError("Header has an empty column name.")
     if "_id" in names:
-        raise InvalidFileError("Header can't contain '_id'; it is reserved for the row ID.")
-    if len(set(names)) != len(names):
-        raise InvalidFileError("Header has duplicate column names.")
+        raise InvalidFileError("Header can't have a column named '_id'; it is reserved for the row ID. Rename that column.")
+    counts = Counter(names)
+    duplicates = sorted({c for c in columns if counts[c.lower()] > 1})
+    if duplicates:
+        raise InvalidFileError(f"Header has duplicate column names: {', '.join(duplicates)}. Names must be unique (ignoring case).")

@@ -12,9 +12,12 @@ def list_page(conn: sqlite3.Connection, dataset_id: str, limit: int, offset: int
 
 
 def insert(conn: sqlite3.Connection, dataset_id: str, values: dict[str, str | None]) -> Row:
-    names = ", ".join(quote(c) for c in values)
-    placeholders = ", ".join("?" for _ in values)
-    sql = f"INSERT INTO {quote(dataset_id)} ({names}) VALUES ({placeholders}) RETURNING *"
+    if values:
+        names = ", ".join(quote(c) for c in values)
+        placeholders = ", ".join("?" for _ in values)
+        sql = f"INSERT INTO {quote(dataset_id)} ({names}) VALUES ({placeholders}) RETURNING *"
+    else:
+        sql = f"INSERT INTO {quote(dataset_id)} DEFAULT VALUES RETURNING *"
     row = _write_one(conn, sql, list(values.values()))
     assert row is not None  # INSERT ... RETURNING always returns the new row
     return row

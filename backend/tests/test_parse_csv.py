@@ -21,6 +21,10 @@ def test_semicolon_delimiter() -> None:
     assert parse_csv(b"id;amount\n1;10,5\n", ";") == (["id", "amount"], [["1", "10,5"]])
 
 
+def test_quoted_single_column_with_other_delimiter_is_allowed() -> None:
+    assert parse_csv(b'"a, b"\n"1, 2"\n', ";") == (["a, b"], [["1, 2"]])
+
+
 def test_header_only_gives_no_rows() -> None:
     assert parse_csv(b"id,name\n", ",") == (["id", "name"], [])
 
@@ -31,12 +35,15 @@ def test_header_only_gives_no_rows() -> None:
         (b"name\nJos\xe9\n", "not UTF-8"),
         (b"", "empty"),
         (b"\n\n", "empty"),
-        (b"a,b\n1,2\n3\n", "Line 3 has 1 values"),
-        (b'name\n"Alice\nBob\n', "could not be read"),  # unclosed quote
-        (b'name\n"Alice"extra\n', "could not be read"),  # text after closing quote
-        (b"a,,c\n", "empty column name"),
+        (b"a,b\n1,2\n3\n", "Line 3 has 1 values, but the header has 2 columns"),
+        (b'a,b\n1,2\n"Alice,1\nBob,2\n', "row starting on line 3"),  # unclosed quote
+        (b'name\n"Alice"extra\n', "row starting on line 2"),  # text after closing quote
+        (b'\n\n"a"x,b\n', "row starting on line 3"),  # bad header after blank lines
+        (b"a;b\n1;2\n", "separated by ';'"),  # wrong delimiter chosen
+        (b"a;b\n1,5;2\n", "separated by ';'"),  # wrong delimiter, data has the chosen one
+        (b"a,,c\n", "no name for column 2"),
         (b"_id,name\n", "'_id'"),
-        (b"Name,name\n", "duplicate"),
+        (b"Name,name,x\n", "duplicate column names: Name, name"),
         (",".join(f"c{i}" for i in range(2000)).encode(), "maximum is 1999"),
     ],
 )

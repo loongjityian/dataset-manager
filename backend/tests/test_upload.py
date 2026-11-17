@@ -38,3 +38,10 @@ def test_rejects_unknown_delimiter(client: TestClient) -> None:
     )
 
     assert response.status_code == 422
+
+
+def test_openapi_shows_file_picker_for_files(client: TestClient) -> None:
+    schema = client.get("/openapi.json").json()["components"]["schemas"]
+    files = schema["Body_upload_datasets_datasets_post"]["properties"]["files"]
+
+    assert files["items"]["format"] == "binary"
