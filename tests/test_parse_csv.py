@@ -1,0 +1,45 @@
+import pytest
+
+from app.exceptions import InvalidFileError
+from app.services.datasets import parse_csv
+
+
+def test_parses_header_and_rows() -> None:
+    content = b'\xef\xbb\xbfid,city\n\n1,"Kuala Lumpur, MY"\n2,\n'  # BOM, blank line, quoted comma
+
+    columns, rows = parse_csv(content, ",")
+
+    assert columns == ["id", "city"]
+    assert rows == [["1", "Kuala Lumpur, MY"], ["2", None]]
+
+
+def test_skips_leading_blank_lines() -> None:
+    assert parse_csv(b"\n\nid\n1\n", ",") == (["id"], [["1"]])
+
+
+def test_semicolon_delimiter() -> None:
+    assert parse_csv(b"id;amount\n1;10,5\n", ";") == (["id", "amount"], [["1", "10,5"]])
+
+
+def test_header_only_gives_no_rows() -> None:
+    assert parse_csv(b"id,name\n", ",") == (["id", "name"], [])
+
+
+@pytest.mark.parametrize(
+    ("content", "error"),
+    [
+        (b"name\nJos\xe9\n", "not UTF-8"),
+        (b"", "empty"),
+        (b"\n\n", "empty"),
+        (b"a,b\n1,2\n3\n", "Line 3 has 1 values"),
+        (b'name\n"Alice\nBob\n', "could not be read"),  # unclosed quote
+        (b'name\n"Alice"extra\n', "could not be read"),  # text after closing quote
+        (b"a,,c\n", "empty column name"),
+        (b"_id,name\n", "'_id'"),
+        (b"Name,name\n", "duplicate"),
+        (",".join(f"c{i}" for i in range(2000)).encode(), "maximum is 1999"),
+    ],
+)
+def test_rejects_invalid_files(content: bytes, error: str) -> None:
+    with pytest.raises(InvalidFileError, match=error):
+        parse_csv(content, ",")
