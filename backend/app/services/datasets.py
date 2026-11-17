@@ -68,40 +68,48 @@ def parse_csv(content: bytes, delimiter: Delimiter) -> tuple[list[str], list[lis
 
     # strict: malformed quoting raises csv.Error instead of silently merging or changing values.
     reader = csv.reader(io.StringIO(text, newline=""), delimiter=delimiter, strict=True)
+    columns: list[str] | None = None
+    rows: list[list[str | None]] = []
     last_line = 0  # the line the previous row ended on, so errors can point at where a row starts
     try:
-        columns = next((row for row in reader if row), None)  # first non-blank line
-        if not columns:
-            raise InvalidFileError("File is empty.")
-        validate_columns(columns, delimiter)
-
-        rows: list[list[str | None]] = []
-        last_line = reader.line_num
         for row in reader:
-            if row and len(row) != len(columns):
+            if not row:  # blank line
+                pass
+            elif columns is None:
+                columns = row
+                validate_columns(columns)
+                if len(columns) == 1:
+                    _check_delimiter(text, delimiter)
+            elif len(row) != len(columns):
                 raise InvalidFileError(
                     f"Line {reader.line_num} has {len(row)} values, but the header has {len(columns)} columns. "
                     "Check that line for a missing or extra separator, or an unquoted value that contains one."
                 )
-            if row:  # skip blank lines
+            else:
                 rows.append([value or None for value in row])
             last_line = reader.line_num
     except csv.Error as e:
-        line = last_line + 1
         if "unexpected end of data" in str(e):
-            raise InvalidFileError(f"Line {line} opens a quote (\") that is never closed.") from None
+            raise InvalidFileError(f"A quote (\") in the row starting on line {last_line + 1} is never closed.") from None
         raise InvalidFileError(
-            f"Line {line} has a quote (\") in the wrong place. "
+            f"Line {reader.line_num} has a quote (\") in the wrong place. "
             'A value that contains quotes must be wrapped in quotes, with each inner quote doubled ("").'
         ) from None
 
+    if columns is None:
+        raise InvalidFileError("File is empty.")
     return columns, rows
 
 
-def validate_columns(columns: list[str], delimiter: Delimiter) -> None:
+def _check_delimiter(text: str, delimiter: Delimiter) -> None:
+    """Reject a one-column header that splits into several columns with the other delimiter."""
     other = ";" if delimiter == "," else ","
-    if len(columns) == 1 and other in columns[0]:
+    header = next((row for row in csv.reader(io.StringIO(text, newline=""), delimiter=other) if row), [])
+    if len(header) > 1:
         raise InvalidFileError(f"Only one column was found. The values look separated by '{other}'; upload again with '{other}' as the delimiter.")
+
+
+def validate_columns(columns: list[str]) -> None:
     if len(columns) > MAX_COLUMNS:
         raise InvalidFileError(f"Header has {len(columns)} columns; the maximum is {MAX_COLUMNS}.")
     empty = [str(i) for i, c in enumerate(columns, 1) if not c]
