@@ -234,11 +234,16 @@ describe('paging', () => {
     expect(app.location()).toBe(`/datasets/${sales.id}?size=100`)
   })
 
-  it('shows an empty dataset with a way to add the first row', async () => {
+  it('shows an empty dataset with a button to add the first row', async () => {
     const { sales } = setupSales([])
-    renderApp(`/datasets/${sales.id}`)
+    const { user } = renderApp(`/datasets/${sales.id}`)
 
     expect(await screen.findByText('No rows yet')).toBeInTheDocument()
     expect(screen.queryByRole('navigation', { name: 'Pagination' })).not.toBeInTheDocument()
+    // The first "Add row" is in the toolbar, the second in the empty-state notice.
+    const buttons = screen.getAllByRole('button', { name: 'Add row' })
+    expect(buttons).toHaveLength(2)
+    await user.click(buttons[1])
+    expect(await screen.findByRole('textbox', { name: 'order_id of row 1' })).toHaveFocus()
   })
 })

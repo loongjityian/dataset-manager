@@ -25,6 +25,10 @@ def test_browse_paginates_in_id_order(client: TestClient, rows_url: str) -> None
     }
 
 
+def test_browse_past_the_end_is_empty(client: TestClient, rows_url: str) -> None:
+    assert client.get(rows_url, params={"offset": 50}).json() == {"rows": [], "total": 3, "limit": 50, "offset": 50}
+
+
 @pytest.mark.parametrize("params", [{"limit": 0}, {"limit": 501}, {"offset": -1}])
 def test_browse_rejects_bad_paging(client: TestClient, rows_url: str, params: dict[str, int]) -> None:
     assert client.get(rows_url, params=params).status_code == 422
@@ -68,8 +72,8 @@ def test_writes_trim_and_convert_to_column_type(
 @pytest.mark.parametrize("value", ["abc", "1e5", "+1", str(2**63), 2**63, 1e20, True])
 def test_writes_that_dont_fit_are_400(client: TestClient, rows_url: str, value: object) -> None:
     error = {"detail": "amount must be a number."}
-    assert client.post(rows_url, json={"amount": value}).json() == error
-    assert client.patch(f"{rows_url}/1", json={"amount": value}).json() == error
+    for response in (client.post(rows_url, json={"amount": value}), client.patch(f"{rows_url}/1", json={"amount": value})):
+        assert (response.status_code, response.json()) == (400, error)
     assert client.get(rows_url).json()["total"] == 3
 
 

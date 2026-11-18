@@ -28,12 +28,15 @@ def test_duplicate_names_are_independent_datasets(client: TestClient) -> None:
         assert conn.execute("SELECT name FROM sqlite_master WHERE name = ?", (first,)).fetchone() is None
 
 
-def test_semicolon_upload_and_empty_dataset_browsing(client: TestClient) -> None:
+def test_upload_uses_chosen_delimiter(client: TestClient) -> None:
+    # The upper-case extension is accepted too.
     result = client.post("/datasets", files=[("files", ("sales.CSV", b"code;amount\n001;10,5\n"))], data={"delimiter": ";"})
     assert result.status_code == 200
     dataset_id = result.json()[0]["dataset"]["id"]
     assert client.get(f"/datasets/{dataset_id}/rows").json()["rows"] == [{"_id": 1, "code": "001", "amount": "10,5"}]
-    assert client.get(f"/datasets/{dataset_id}/rows?offset=50").json() == {"rows": [], "total": 1, "limit": 50, "offset": 50}
+
+
+def test_header_only_upload_is_an_empty_text_dataset(client: TestClient) -> None:
     empty = upload(client, "empty.csv", b"name\n")
     assert client.get(f"/datasets/{empty}").json()["columns"] == [{"name": "name", "type": "text"}]
     assert client.get(f"/datasets/{empty}/rows").json() == {"rows": [], "total": 0, "limit": 50, "offset": 0}
