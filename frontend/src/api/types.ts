@@ -5,8 +5,12 @@ export type Delimiter = ',' | ';'
 /** A value a client may send for one cell. */
 export type CellInput = string | number | boolean | null
 
-/** A stored row: `_id` plus text or NULL cells. */
-export type Row = Record<string, string | number | null> & { _id: number }
+export type ColumnType = 'boolean' | 'number' | 'text'
+
+export type Column = { name: string; type: ColumnType }
+
+/** A returned row: `_id` plus typed or NULL cells. */
+export type Row = Record<string, CellInput> & { _id: number }
 
 export type RowValues = Record<string, CellInput>
 
@@ -18,8 +22,8 @@ export type Dataset = {
 }
 
 export type DatasetDetail = Dataset & {
-  /** Column names in order, excluding `_id`. */
-  columns: string[]
+  /** Columns in order, excluding `_id`. */
+  columns: Column[]
 }
 
 export type UploadResult = {

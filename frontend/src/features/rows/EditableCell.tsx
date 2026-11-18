@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { errorMessage } from '../../api/client'
+import type { CellInput } from '../../api/types'
 import { cx } from '../../lib/styles'
 
 /** Where to go after a cell closes: the next or previous cell (Tab / Shift+Tab), or nowhere. */
@@ -8,7 +9,7 @@ export type Move = 1 | -1 | null
 type Props = {
   /** Accessible name, e.g. "amount of row 3". */
   label: string
-  value: string | number | null
+  value: CellInput
   editing: boolean
   onEdit: () => void
   onClose: (move: Move) => void

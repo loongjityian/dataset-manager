@@ -19,7 +19,7 @@ def test_duplicate_names_are_independent_datasets(client: TestClient) -> None:
     assert client.patch(f"/datasets/{first}/rows/1", json={"amount": "15"}).status_code == 200
     assert client.delete(f"/datasets/{first}/rows/2").status_code == 200
     assert client.get(f"/datasets/{first}/rows").json()["rows"] == [
-        {"_id": 1, "code": "001", "amount": "15"},
+        {"_id": 1, "code": "001", "amount": 15},
     ]
     assert client.get(f"/datasets/{second}/rows").json()["rows"] == [{"_id": 1, "name": "Ada"}]
     assert client.delete(f"/datasets/{first}").status_code == 200
@@ -35,7 +35,7 @@ def test_semicolon_upload_and_empty_dataset_browsing(client: TestClient) -> None
     assert client.get(f"/datasets/{dataset_id}/rows").json()["rows"] == [{"_id": 1, "code": "001", "amount": "10,5"}]
     assert client.get(f"/datasets/{dataset_id}/rows?offset=50").json() == {"rows": [], "total": 1, "limit": 50, "offset": 50}
     empty = upload(client, "empty.csv", b"name\n")
-    assert client.get(f"/datasets/{empty}").json()["columns"] == ["name"]
+    assert client.get(f"/datasets/{empty}").json()["columns"] == [{"name": "name", "type": "text"}]
     assert client.get(f"/datasets/{empty}/rows").json() == {"rows": [], "total": 0, "limit": 50, "offset": 0}
 
 
@@ -53,7 +53,7 @@ def test_saved_changes_survive_application_restart(tmp_path: Path, monkeypatch: 
         listing = client.get("/datasets").json()
         assert [(d["id"], d["display_name"], d["row_count"]) for d in listing] == [(dataset_id, "Saved sales", 2)]
         assert client.get(f"/datasets/{dataset_id}/rows").json()["rows"] == [
-            {"_id": 1, "code": "001", "amount": "15"},
+            {"_id": 1, "code": "001", "amount": 15},
             {"_id": 3, "code": "003", "amount": None},
         ]
         assert client.get(f"/datasets/{removed}").status_code == 404

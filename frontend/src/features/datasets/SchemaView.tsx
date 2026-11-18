@@ -1,6 +1,7 @@
+import type { Column } from '../../api/types'
 import { Icon } from '../../components/Icon'
 
-export function SchemaView({ columns }: { columns: string[] }) {
+export function SchemaView({ columns }: { columns: Column[] }) {
   return (
     <div className="min-h-0 flex-1 overflow-auto px-4 py-6 md:px-8">
       <div className="max-w-2xl overflow-hidden rounded-lg border border-line bg-surface">
@@ -9,7 +10,7 @@ export function SchemaView({ columns }: { columns: string[] }) {
             <tr>
               <th className="w-12 px-4 py-2.5 font-medium">#</th>
               <th className="px-4 py-2.5 font-medium">Column</th>
-              <th className="px-4 py-2.5 font-medium">Stored as</th>
+              <th className="px-4 py-2.5 font-medium">Type</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line font-mono text-[13px]">
@@ -22,15 +23,15 @@ export function SchemaView({ columns }: { columns: string[] }) {
                 </span>
               </td>
               <td className="px-4 py-2.5">
-                <TypeTag>integer</TypeTag> <span className="ml-1 font-sans text-xs">primary key, set by the system</span>
+                <TypeTag>number</TypeTag> <span className="ml-1 font-sans text-xs">primary key, set by the system</span>
               </td>
             </tr>
             {columns.map((column, i) => (
-              <tr key={column} className="rise" style={{ animationDelay: `${i * 25}ms` }}>
+              <tr key={column.name} className="rise" style={{ animationDelay: `${i * 25}ms` }}>
                 <td className="px-4 py-2.5 text-faint">{i + 1}</td>
-                <td className="px-4 py-2.5">{column}</td>
+                <td className="px-4 py-2.5">{column.name}</td>
                 <td className="px-4 py-2.5">
-                  <TypeTag>text</TypeTag>
+                  <TypeTag>{column.type}</TypeTag>
                 </td>
               </tr>
             ))}

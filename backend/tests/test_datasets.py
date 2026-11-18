@@ -13,13 +13,22 @@ def test_list_is_newest_first_with_row_counts(client: TestClient) -> None:
     assert [(d["display_name"], d["row_count"]) for d in datasets] == [("second", 2), ("first", 1)]
 
 
-def test_get_returns_columns_without_id(client: TestClient) -> None:
-    dataset_id = upload(client, "sales.csv", b"order_id,amount\n1,10\n")
+def test_get_returns_typed_columns_without_id(client: TestClient) -> None:
+    dataset_id = upload(client, "sales.csv", b"order_id,amount,paid,code,note\n1, 10.5 ,TRUE,007, \n2,3,false,008,\n")
 
     dataset = client.get(f"/datasets/{dataset_id}").json()
 
     assert dataset["display_name"] == "sales"
-    assert dataset["columns"] == ["order_id", "amount"]
+    assert dataset["columns"] == [
+        {"name": "order_id", "type": "number"},
+        {"name": "amount", "type": "number"},
+        {"name": "paid", "type": "boolean"},
+        {"name": "code", "type": "text"},
+        {"name": "note", "type": "text"},
+    ]
+    assert client.get(f"/datasets/{dataset_id}/rows").json()["rows"][0] == {
+        "_id": 1, "order_id": 1, "amount": 10.5, "paid": True, "code": "007", "note": None,
+    }
 
 
 def test_rename_trims_and_saves(client: TestClient) -> None:
@@ -29,7 +38,7 @@ def test_rename_trims_and_saves(client: TestClient) -> None:
 
     assert response.json()["display_name"] == "Sales 2026"
     assert client.get(f"/datasets/{dataset_id}").json()["display_name"] == "Sales 2026"
-    assert client.get(f"/datasets/{dataset_id}/rows").json()["rows"] == [{"_id": 1, "a": "1"}]
+    assert client.get(f"/datasets/{dataset_id}/rows").json()["rows"] == [{"_id": 1, "a": 1}]
 
 
 def test_rename_rejects_blank_name(client: TestClient) -> None:

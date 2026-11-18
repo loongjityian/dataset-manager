@@ -38,13 +38,16 @@ Swagger UI at http://localhost:8000/docs shows every endpoint's request and resp
 | Update | `PATCH /datasets/{id}/rows/{row_id}` | `{"amount": 20}` (only the columns to change) |
 | Delete | `DELETE /datasets/{id}/rows/{row_id}` | |
 
-Errors come back as `{"detail": "..."}`: 400 for bad values such as unknown columns, 404 for a missing dataset or row, 422 for invalid parameters.
+Errors come back as `{"detail": "..."}`: 400 for bad values such as unknown columns or a value that doesn't fit the column's type, 404 for a missing dataset or row, 422 for invalid parameters.
 
 ## Design decisions and trade-offs
 
 - The backend is FastAPI with SQLite. SQLite is one file on a volume, with no database server to run.
 - Each dataset gets its own table, named by a UUID. A `datasets` table records each one's display name and upload time. Display names can repeat and be renamed without touching the table.
-- Every value is stored as text. Any CSV loads without guessing types, but sorting and comparing are text-based.
+- Column types are inferred at upload: boolean (`true`/`false`, any case), number or text. A column gets a type only if every non-empty value fits it.
+- Types are enforced: a write that doesn't fit its column is rejected, and a column's type never changes. 
+- Writes accept either JSON values or strings such as `"3"`, because the web UI sends what you type.
+- There is one number type. Numbers are rounded to 15 significant digits.
 - Every table gets an `_id` primary key, so rows have a stable ID even when the CSV has no unique column.
 - A file loads completely or not at all. Its error message names the line and says how to fix it.
 - The code is split into API, service and repository layers.
@@ -54,10 +57,11 @@ Errors come back as `{"detail": "..."}`: 400 for bad values such as unknown colu
 
 - The first non-blank line of a CSV is the header.
 - The user picks the delimiter when uploading; the app doesn't detect it.
-- An empty cell means `null`.
+- Leading and trailing whitespace is trimmed. 
+- An empty or whitespace-only cell means `null`.
 - Rows are identified by the `_id` the app assigns, not by any column in the CSV.
 - Only UTF-8 CSV files up to 50 MB, separated by `,` or `;`.
-- Column types are not inferred. The schema shows column names only.
+- Inferred types can't be changed. 
 - Header names must be non-empty and unique (ignoring case). `_id` is reserved.
 - No authentication, and no guarantees for concurrent edits to the same row.
 

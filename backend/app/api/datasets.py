@@ -8,7 +8,7 @@ from fastapi import APIRouter, File, Form, UploadFile
 from app.db.database import Connection
 from app.domain import Delimiter
 from app.exceptions import InvalidFileError
-from app.schemas.datasets import DatasetDetailResponse, DatasetResponse, RenameRequest, UploadResult
+from app.schemas.datasets import ColumnResponse, DatasetDetailResponse, DatasetResponse, RenameRequest, UploadResult
 from app.services import datasets as service
 
 MAX_FILE_BYTES = 50 * 1024 * 1024  # 50MB limit
@@ -38,9 +38,9 @@ def list_datasets(conn: Connection) -> list[DatasetResponse]:
 
 @router.get("/{dataset_id}")
 def get_dataset(conn: Connection, dataset_id: UUID) -> DatasetDetailResponse:
-    """Get a dataset and its columns."""
+    """Get a dataset and its columns with their inferred types."""
     dataset = service.get_dataset(conn, str(dataset_id))
-    columns = service.get_columns(conn, str(dataset_id))
+    columns = [ColumnResponse.model_validate(c) for c in service.get_columns(conn, str(dataset_id))]
     return DatasetDetailResponse(**asdict(dataset), columns=columns)
 
 

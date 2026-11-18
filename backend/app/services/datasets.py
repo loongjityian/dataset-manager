@@ -7,9 +7,10 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
-from app.domain import Dataset, Delimiter
+from app.domain import Column, Dataset, Delimiter, StoredValue
 from app.exceptions import DatasetNotFoundError, InvalidFileError
 from app.repositories import datasets as repository
+from app.utils import column_types
 
 # Python's csv module rejects cells over 128 KB by default.
 csv.field_size_limit(2**31 - 1)
@@ -27,7 +28,7 @@ def get_dataset(conn: sqlite3.Connection, dataset_id: str) -> Dataset:
     return dataset
 
 
-def get_columns(conn: sqlite3.Connection, dataset_id: str) -> list[str]:
+def get_columns(conn: sqlite3.Connection, dataset_id: str) -> list[Column]:
     """Also the cheap way to check a dataset exists: a missing table has no columns."""
     columns = repository.get_columns(conn, dataset_id)
     if not columns:
@@ -48,15 +49,23 @@ def delete_dataset(conn: sqlite3.Connection, dataset_id: str) -> Dataset:
 
 
 def create_dataset(conn: sqlite3.Connection, filename: str, content: bytes, delimiter: Delimiter) -> Dataset:
-    columns, rows = parse_csv(content, delimiter)
+    names, rows = parse_csv(content, delimiter)
+    columns, typed_rows = _apply_types(names, rows)
     dataset = Dataset(
         id=str(uuid.uuid4()),
         display_name=Path(filename).stem,
         created_at=datetime.now(UTC).isoformat(),
         row_count=len(rows),
     )
-    repository.create(conn, dataset, columns, rows)
+    repository.create(conn, dataset, columns, typed_rows)
     return dataset
+
+
+def _apply_types(names: list[str], rows: list[list[str | None]]) -> tuple[list[Column], list[list[StoredValue]]]:
+    """Infer each column's type and convert its values to it."""
+    columns = [Column(name, column_types.infer(row[i] for row in rows)) for i, name in enumerate(names)]
+    typed_rows = [[None if value is None else column_types.from_text(value, column.type) for value, column in zip(row, columns)] for row in rows]
+    return columns, typed_rows
 
 
 def parse_csv(content: bytes, delimiter: Delimiter) -> tuple[list[str], list[list[str | None]]]:
@@ -81,19 +90,12 @@ def parse_csv(content: bytes, delimiter: Delimiter) -> tuple[list[str], list[lis
                 if len(columns) == 1:
                     _check_delimiter(text, delimiter)
             elif len(row) != len(columns):
-                raise InvalidFileError(
-                    f"Line {reader.line_num} has {len(row)} values, but the header has {len(columns)} columns. "
-                    "Check that line for a missing or extra separator, or an unquoted value that contains one."
-                )
+                raise InvalidFileError(f"Line {reader.line_num} has {len(row)} values, but the header has {len(columns)} columns. Check that line for a missing or extra separator, or an unquoted value that contains one.")
             else:
-                rows.append([value or None for value in row])
+                rows.append([value.strip() or None for value in row])
             last_line = reader.line_num
     except csv.Error:
-        raise InvalidFileError(
-            f"There is a quote (\") problem in the row starting on line {last_line + 1}: a quote is never closed, "
-            "or a value contains a quote but isn't wrapped in quotes. "
-            'Wrap such values in quotes and double any inner quotes ("").'
-        ) from None
+        raise InvalidFileError(f'There is a quote (") problem in the row starting on line {last_line + 1}: a quote is never closed, or a value contains a quote but isn\'t wrapped in quotes. Wrap such values in quotes and double any inner quotes ("").') from None
 
     if columns is None:
         raise InvalidFileError("File is empty.")

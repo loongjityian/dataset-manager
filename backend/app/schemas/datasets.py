@@ -2,6 +2,8 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, StringConstraints
 
+from app.domain import ColumnType
+
 
 class DatasetResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -12,8 +14,15 @@ class DatasetResponse(BaseModel):
     row_count: int
 
 
+class ColumnResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    name: str
+    type: ColumnType
+
+
 class DatasetDetailResponse(DatasetResponse):
-    columns: list[str]
+    columns: list[ColumnResponse]
 
 
 class UploadResult(BaseModel):

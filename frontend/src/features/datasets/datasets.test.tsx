@@ -46,11 +46,12 @@ describe('datasets', () => {
 
   it('shows the schema tab from the URL', async () => {
     const backend = setupBackend()
-    const sales = backend.addDataset('sales', ['order_id', 'amount'])
+    const sales = backend.addDataset('sales', ['order_id', 'amount'], [], { amount: 'number' })
     renderApp(`/datasets/${sales.id}?tab=schema`)
 
     expect(await screen.findByRole('tab', { name: /Schema/, selected: true })).toBeInTheDocument()
-    expect(screen.getByRole('cell', { name: 'amount' })).toBeInTheDocument()
+    expect(screen.getByRole('row', { name: /amount/ })).toHaveTextContent('number')
+    expect(screen.getByRole('row', { name: /order_id/ })).toHaveTextContent('text')
   })
 
   it('renames a dataset everywhere it appears', async () => {
