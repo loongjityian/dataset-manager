@@ -43,7 +43,8 @@ def test_rejects_unknown_delimiter(client: TestClient) -> None:
 
 
 def test_openapi_shows_file_picker_for_files(client: TestClient) -> None:
-    schema = client.get("/openapi.json").json()["components"]["schemas"]
-    files = schema["Body_upload_datasets_datasets_post"]["properties"]["files"]
+    spec = client.get("/openapi.json").json()
+    body = spec["paths"]["/datasets"]["post"]["requestBody"]["content"]["multipart/form-data"]["schema"]["$ref"]
+    files = spec["components"]["schemas"][body.rsplit("/", 1)[-1]]["properties"]["files"]
 
     assert files["items"]["format"] == "binary"

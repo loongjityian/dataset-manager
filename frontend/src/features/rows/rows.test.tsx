@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import type { CellInput, Column } from '../../api/types'
@@ -271,11 +271,13 @@ describe('paging', () => {
     expect(app.location()).toBe(`/datasets/${sales.id}?size=100`)
   })
 
-  it('shows an empty dataset with a way to add the first row', async () => {
+  it('shows an empty dataset with a button to add the first row', async () => {
     const { sales } = setupSales([])
-    renderApp(`/datasets/${sales.id}`)
+    const { user } = renderApp(`/datasets/${sales.id}`)
 
-    expect(await screen.findByText('No rows yet')).toBeInTheDocument()
+    const notice = (await screen.findByRole('heading', { name: 'No rows yet' })).parentElement!
     expect(screen.queryByRole('navigation', { name: 'Pagination' })).not.toBeInTheDocument()
+    await user.click(within(notice).getByRole('button', { name: 'Add row' }))
+    expect(await screen.findByRole('textbox', { name: 'order_id of row 1' })).toHaveFocus()
   })
 })
