@@ -17,8 +17,7 @@ _INT64 = range(-(2**63), 2**63)
 
 
 def from_sql_type(declared: str) -> ColumnType:
-    """Tables created before type inference declare TEXT, so they read as text."""
-    return _FROM_SQL.get(declared.upper(), "text")
+    return _FROM_SQL[declared]
 
 
 def infer(values: Iterable[str | None]) -> ColumnType:

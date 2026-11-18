@@ -1,12 +1,13 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+import { textColumns } from '../../test/fakeBackend'
 import { renderApp, setupBackend } from '../../test/renderApp'
 import { trackReads } from '../../test/server'
 
 describe('datasets', () => {
   it('cancels dataset deletion without changing the dataset', async () => {
     const backend = setupBackend()
-    const sales = backend.addDataset('sales', ['order_id'], [['SO-1']])
+    const sales = backend.addDataset('sales', textColumns('order_id'), [['SO-1']])
     const { user } = renderApp(`/datasets/${sales.id}`)
     await user.click(await screen.findByRole('button', { name: 'Delete dataset' }))
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }))
@@ -18,8 +19,8 @@ describe('datasets', () => {
 
   it('opens the newest dataset and shows its rows', async () => {
     const backend = setupBackend()
-    backend.addDataset('customers', ['name'], [['Aisha']])
-    const sales = backend.addDataset('sales', ['order_id', 'amount'], [['SO-1', '10']])
+    backend.addDataset('customers', textColumns('name'), [['Aisha']])
+    const sales = backend.addDataset('sales', textColumns('order_id', 'amount'), [['SO-1', '10']])
 
     const app = renderApp('/')
 
@@ -46,7 +47,10 @@ describe('datasets', () => {
 
   it('shows the schema tab from the URL', async () => {
     const backend = setupBackend()
-    const sales = backend.addDataset('sales', ['order_id', 'amount'], [], { amount: 'number' })
+    const sales = backend.addDataset('sales', [
+      { name: 'order_id', type: 'text' },
+      { name: 'amount', type: 'number' },
+    ])
     renderApp(`/datasets/${sales.id}?tab=schema`)
 
     expect(await screen.findByRole('tab', { name: /Schema/, selected: true })).toBeInTheDocument()
@@ -56,7 +60,7 @@ describe('datasets', () => {
 
   it('renames a dataset everywhere it appears', async () => {
     const backend = setupBackend()
-    const sales = backend.addDataset('sales', ['order_id'])
+    const sales = backend.addDataset('sales', textColumns('order_id'))
     const { user } = renderApp(`/datasets/${sales.id}`)
 
     await user.click(await screen.findByRole('button', { name: 'Rename sales' }))
@@ -71,7 +75,7 @@ describe('datasets', () => {
 
   it('cancels a rename with Escape without saving', async () => {
     const backend = setupBackend()
-    const sales = backend.addDataset('sales', ['order_id'])
+    const sales = backend.addDataset('sales', textColumns('order_id'))
     const { user } = renderApp(`/datasets/${sales.id}`)
 
     await user.click(await screen.findByRole('button', { name: 'Rename sales' }))
@@ -83,7 +87,7 @@ describe('datasets', () => {
 
   it('says a deleted dataset is gone when going Back to it', async () => {
     const backend = setupBackend()
-    const sales = backend.addDataset('sales', ['order_id'])
+    const sales = backend.addDataset('sales', textColumns('order_id'))
     const app = renderApp(`/datasets/${sales.id}`)
     const { user } = app
 
@@ -98,8 +102,8 @@ describe('datasets', () => {
 
   it('deletes a dataset after confirmation and opens the next one', async () => {
     const backend = setupBackend()
-    const customers = backend.addDataset('customers', ['name'])
-    const sales = backend.addDataset('sales', ['order_id'])
+    const customers = backend.addDataset('customers', textColumns('name'))
+    const sales = backend.addDataset('sales', textColumns('order_id'))
     const app = renderApp(`/datasets/${sales.id}`)
     const { user } = app
 
