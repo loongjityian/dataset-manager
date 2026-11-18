@@ -13,6 +13,10 @@ def test_parses_header_and_rows() -> None:
     assert rows == [["1", "Kuala Lumpur, MY"], ["2", None]]
 
 
+def test_trims_cells_and_spaces_only_cells_are_none() -> None:
+    assert parse_csv(b'a,b\n 1 ,"  "\n"\n x\n",y\n', ",") == (["a", "b"], [["1", None], ["x", "y"]])
+
+
 def test_skips_leading_blank_lines() -> None:
     assert parse_csv(b"\n\nid\n1\n", ",") == (["id"], [["1"]])
 

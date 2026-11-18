@@ -1,9 +1,10 @@
 // An in-memory stand-in for the FastAPI backend, served through MSW. It follows the
 // contract in doc/decisions.md closely enough for UI tests; it is not a second implementation.
 import { http, HttpResponse } from 'msw'
-import type { Dataset, DatasetDetail, Row, RowsPage } from '../api/types'
+import type { Column, Dataset, DatasetDetail, Row, RowsPage } from '../api/types'
 
-type Table = { dataset: Omit<Dataset, 'row_count'>; columns: string[]; rows: Row[]; nextRowId: number }
+// The fake stores every value as text; column types only set what the schema reports.
+type Table = { dataset: Omit<Dataset, 'row_count'>; columns: Column[]; rows: Row[]; nextRowId: number }
 
 export type RecordedRequest = { method: string; path: string; body: unknown }
 
@@ -20,13 +21,18 @@ export function createFakeBackend() {
   const toCell = (value: unknown): string | null =>
     value === null || value === undefined || value === '' ? null : String(value)
 
-  function addDataset(name: string, columns: string[], rows: (string | null)[][] = []): Dataset {
+  function addDataset(
+    name: string,
+    columns: string[],
+    rows: (string | null)[][] = [],
+    types: Record<string, Column['type']> = {},
+  ): Dataset {
     const id = crypto.randomUUID()
     // Later datasets are newer.
     const createdAt = new Date(Date.UTC(2026, 10, 1, 9, created++)).toISOString()
     const table: Table = {
       dataset: { id, display_name: name, created_at: createdAt },
-      columns,
+      columns: columns.map((c) => ({ name: c, type: types[c] ?? 'text' })),
       rows: rows.map((values, i) => ({ _id: i + 1, ...Object.fromEntries(columns.map((c, j) => [c, values[j] ?? null])) })),
       nextRowId: rows.length + 1,
     }
@@ -83,7 +89,7 @@ export function createFakeBackend() {
       const table = tables.get(String(params.id))
       if (!table) return notFound('Dataset')
       const values = (await request.json()) as Record<string, unknown>
-      const row: Row = { _id: table.nextRowId++, ...Object.fromEntries(table.columns.map((c) => [c, toCell(values[c])])) }
+      const row: Row = { _id: table.nextRowId++, ...Object.fromEntries(table.columns.map(({ name }) => [name, toCell(values[name])])) }
       table.rows.push(row)
       return HttpResponse.json(row)
     }),

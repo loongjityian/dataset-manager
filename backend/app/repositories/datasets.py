@@ -1,6 +1,7 @@
 import sqlite3
 
-from app.domain import Dataset
+from app.domain import Column, Dataset, StoredValue
+from app.utils.column_types import SQL_TYPES, from_sql_type
 from app.utils.sql import quote
 
 REGISTRY_COLUMNS = "id, display_name, created_at"
@@ -22,13 +23,13 @@ def create_registry_table(conn: sqlite3.Connection) -> None:
 def create(
     conn: sqlite3.Connection,
     dataset: Dataset,
-    columns: list[str],
-    rows: list[list[str | None]],
+    columns: list[Column],
+    rows: list[list[StoredValue]],
 ) -> None:
     """Create the dataset's table, load its rows and register it, all in one transaction."""
     table = quote(dataset.id)
-    column_defs = ", ".join(f"{quote(c)} TEXT" for c in columns)
-    column_names = ", ".join(quote(c) for c in columns)
+    column_defs = ", ".join(f"{quote(c.name)} {SQL_TYPES[c.type]}" for c in columns)
+    column_names = ", ".join(quote(c.name) for c in columns)
     placeholders = ", ".join("?" for _ in columns)
 
     with conn:
@@ -52,9 +53,9 @@ def get(conn: sqlite3.Connection, dataset_id: str) -> Dataset | None:
     return _to_dataset(conn, row) if row else None
 
 
-def get_columns(conn: sqlite3.Connection, dataset_id: str) -> list[str]:
-    rows = conn.execute("SELECT name FROM pragma_table_info(?)", (dataset_id,)).fetchall()
-    return [row["name"] for row in rows if row["name"] != "_id"]
+def get_columns(conn: sqlite3.Connection, dataset_id: str) -> list[Column]:
+    rows = conn.execute("SELECT name, type FROM pragma_table_info(?)", (dataset_id,)).fetchall()
+    return [Column(row["name"], from_sql_type(row["type"])) for row in rows if row["name"] != "_id"]
 
 
 def rename(conn: sqlite3.Connection, dataset_id: str, display_name: str) -> None:

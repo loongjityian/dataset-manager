@@ -83,7 +83,7 @@ function DatasetScreen({ id }: { id: string }) {
       {view.tab === 'rows' ? (
         <RowsView
           datasetId={id}
-          columns={dataset.columns}
+          columns={dataset.columns.map((c) => c.name)}
           page={view.page}
           size={view.size}
           setPage={view.setPage}
