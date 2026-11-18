@@ -19,6 +19,17 @@ Data is kept in a Docker volume, so it survives restarts. `docker compose down -
 
 Swagger UI at http://localhost:8000/docs shows every endpoint's request and response format and lets you try them. `{id}` is the dataset ID from the upload or list response.
 
+### Example uploads
+
+Sample files are included in `examples/`:
+
+- `example1.csv`: text, number and boolean columns, including empty cells. Use delimiter `,`.
+- `inventory_semicolon_separator.csv`: inventory data. Use delimiter `;`.
+
+To upload, open http://localhost:8000/docs, expand `POST /datasets`, and click **Try it out**. Choose a sample under `files`, set its delimiter, then click **Execute**.
+
+Use the returned dataset `id` to try the schema and row endpoints.
+
 ### Datasets
 
 | Action | Request | Example body |
