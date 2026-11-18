@@ -1,0 +1,9 @@
+sku;product_name;quantity;unit_price;warehouse;notes
+SKU-001;USB-C Cable;100;12.99;KL-01;Normal item
+SKU-002;"Table; lamp";25;79.90;KL-01;Semicolon inside a quoted field
+SKU-003;Notebook, A5;0;4.50;PJ-02;Comma is not a delimiter in this file
+SKU-004;"Keyboard ""Pro""";-1;199.00;PJ-02;Negative inventory, quoted title
+SKU-005;椰子水;15;3.20;MY-03;Unicode item
+SKU-006;Unpriced item;;;MY-03;Empty cells become SQL NULL
+SKU-007;Gadget;2;unknown;MY-03;Mixed numeric and nonnumeric prices
+SKU-008;Tape;10000000000000;0.01;SG-04;Huge numeric-looking stock

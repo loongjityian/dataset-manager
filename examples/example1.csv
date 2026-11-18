@@ -1,0 +1,7 @@
+product_code,product_name,quantity,unit_price,active,notes
+001,USB-C Cable,100,12.99,true,Leading zeros keep product codes as text
+002,"Notebook, A5",0,4.50,false,"Text can contain commas, when quoted"
+003,"Keyboard ""Pro""",25,199.00,TRUE,Boolean values ignore case
+004,Returned item,-2,-9.95,FALSE,Numbers can be negative
+005,Free sample,10,0,true,Zero is a number
+006,Pending item,,,,Empty cells become null without changing column types
