@@ -42,7 +42,8 @@ test('uploads a CSV and browses its rows', async ({ page }) => {
 
   await page.getByRole('tab', { name: /Schema/ }).click()
   // Real type inference only reaches the UI here; the fake backend in unit tests doesn't infer.
-  await expect(page.getByRole('row', { name: '2 score number', exact: true })).toBeVisible()
+  const scoreRow = page.getByRole('row').filter({ has: page.getByRole('cell', { name: 'score', exact: true }) })
+  await expect(scoreRow.getByRole('cell', { name: 'number', exact: true })).toBeVisible()
 })
 
 test("shows the backend's error for an invalid CSV and creates nothing", async ({ page }) => {
