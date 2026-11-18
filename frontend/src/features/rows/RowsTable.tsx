@@ -63,7 +63,7 @@ export function RowsTable({ columns, rows, dimmed, editing, onEditingChange, onU
                   <EditableCell
                     key={column}
                     label={`${column} of row ${row._id}`}
-                    value={row[column] ?? null}
+                    value={row[column]}
                     editing={editing?.rowId === row._id && editing.column === column}
                     onEdit={() => onEditingChange({ rowId: row._id, column })}
                     onClose={(move) => close(row._id, i, move)}

@@ -1,15 +1,52 @@
 import { screen, waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
-import { numberedRows } from '../../test/fakeBackend'
+import type { CellInput, Column } from '../../api/types'
+import { numberedRows, textColumns } from '../../test/fakeBackend'
 import { renderApp, setupBackend } from '../../test/renderApp'
 import { server } from '../../test/server'
 
-function setupSales(rows: (string | null)[][] = [['SO-1', '10'], ['SO-2', null]]) {
+function setupSales(rows: CellInput[][] = [['SO-1', '10'], ['SO-2', null]]) {
   const backend = setupBackend()
-  const sales = backend.addDataset('sales', ['order_id', 'amount'], rows)
+  const sales = backend.addDataset('sales', textColumns('order_id', 'amount'), rows)
   return { backend, sales }
 }
+
+const typedColumns: Column[] = [
+  { name: 'amount', type: 'number' },
+  { name: 'paid', type: 'boolean' },
+]
+
+describe('typed values', () => {
+  it('shows numbers, booleans and NULL', async () => {
+    const orders = setupBackend().addDataset('orders', typedColumns, [[0, false], [null, true]])
+    renderApp(`/datasets/${orders.id}`)
+
+    expect(await screen.findByLabelText('amount of row 1')).toHaveTextContent(/^0$/)
+    expect(screen.getByLabelText('paid of row 1')).toHaveTextContent(/^false$/)
+    expect(screen.getByLabelText('amount of row 2')).toHaveTextContent(/^NULL$/)
+    expect(screen.getByLabelText('paid of row 2')).toHaveTextContent(/^true$/)
+  })
+
+  it('shows the typed value the server returns after an edit', async () => {
+    const orders = setupBackend().addDataset('orders', typedColumns, [[0, false]])
+    let sent: unknown
+    server.use(
+      http.patch('/api/datasets/:id/rows/:rowId', async ({ request }) => {
+        sent = await request.json()
+        return HttpResponse.json({ _id: 1, amount: 1.5, paid: false })
+      }),
+    )
+    const { user } = renderApp(`/datasets/${orders.id}`)
+
+    await user.dblClick(await screen.findByLabelText('amount of row 1'))
+    await user.clear(screen.getByRole('textbox', { name: 'amount of row 1' }))
+    await user.type(screen.getByRole('textbox', { name: 'amount of row 1' }), '1.50{Enter}')
+
+    await waitFor(() => expect(screen.getByLabelText('amount of row 1')).toHaveTextContent(/^1\.5$/))
+    expect(sent).toEqual({ amount: '1.50' })
+  })
+})
 
 describe('editing a cell', () => {
   it.each(['enter', 'outside'])('saves only the changed column with %s', async (action) => {
@@ -69,19 +106,19 @@ describe('editing a cell', () => {
   })
 
   it('keeps the editor open and shows the server error when saving fails', async () => {
-    const { sales } = setupSales()
+    const sales = setupBackend().addDataset('sales', typedColumns, [[10, false]])
     server.use(
       http.patch('/api/datasets/:id/rows/:rowId', () =>
-        HttpResponse.json({ detail: [{ msg: 'Input should be a valid string' }] }, { status: 422 }),
+        HttpResponse.json({ detail: 'amount must be a number.' }, { status: 400 }),
       ),
     )
     const { user } = renderApp(`/datasets/${sales.id}`)
 
     await user.dblClick(await screen.findByLabelText('amount of row 1'))
-    await user.type(screen.getByRole('textbox', { name: 'amount of row 1' }), '1{Enter}')
+    await user.type(screen.getByRole('textbox', { name: 'amount of row 1' }), 'x{Enter}')
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Input should be a valid string')
-    expect(screen.getByRole('textbox', { name: 'amount of row 1' })).toHaveValue('101')
+    expect(await screen.findByRole('alert')).toHaveTextContent('amount must be a number.')
+    expect(screen.getByRole('textbox', { name: 'amount of row 1' })).toHaveValue('10x')
   })
 })
 
