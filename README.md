@@ -23,8 +23,9 @@ Swagger UI at http://localhost:8000/docs shows every endpoint's request and resp
 
 Sample files are included in `examples/`:
 
-- `example1.csv`: text, number and boolean columns, including empty cells. Use delimiter `,`.
-- `inventory_semicolon_separator.csv`: inventory data. Use delimiter `;`.
+- `example1-product-comma.csv`: text, number and boolean columns, including empty cells. Use delimiter `,`.
+- `example2-customer-comma.csv`: a simple customer dataset. Use delimiter `,`.
+- `example3-inventory-semicolon.csv`: inventory data. Use delimiter `;`.
 
 To upload, open http://localhost:8000/docs, expand `POST /datasets`, and click **Try it out**. Choose a sample under `files`, set its delimiter, then click **Execute**.
 
