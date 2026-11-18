@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../api/client'
 import { uploadDatasets } from '../../api/datasets'
 import type { UploadResult } from '../../api/types'
+import { textColumns } from '../../test/fakeBackend'
 import { renderApp, setupBackend } from '../../test/renderApp'
 
 // jsdom can't send multipart bodies through Node's fetch, so upload is mocked at the
@@ -64,7 +65,7 @@ describe('uploading', () => {
   it('reports each file, sends the chosen delimiter and opens the new dataset', async () => {
     const backend = setupBackend()
     upload.mockImplementation(async () => {
-      const orders = backend.addDataset('orders', ['id', 'item'], [['1', 'Lamp'], ['2', 'Desk']])
+      const orders = backend.addDataset('orders', textColumns('id', 'item'), [['1', 'Lamp'], ['2', 'Desk']])
       return [
         { filename: 'orders.csv', dataset: orders, error: null },
         { filename: 'broken.csv', dataset: null, error: 'Line 2 has 3 values but the header has 2.' },

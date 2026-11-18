@@ -1,9 +1,9 @@
 // An in-memory stand-in for the FastAPI backend, served through MSW. It follows the
 // contract in doc/decisions.md closely enough for UI tests; it is not a second implementation.
 import { http, HttpResponse } from 'msw'
-import type { Column, Dataset, DatasetDetail, Row, RowsPage } from '../api/types'
+import type { CellInput, Column, Dataset, DatasetDetail, Row, RowsPage, RowValues } from '../api/types'
 
-// The fake stores every value as text; column types only set what the schema reports.
+// The fake stores values as sent; it doesn't convert or validate them by column type.
 type Table = { dataset: Omit<Dataset, 'row_count'>; columns: Column[]; rows: Row[]; nextRowId: number }
 
 export type RecordedRequest = { method: string; path: string; body: unknown }
@@ -18,22 +18,14 @@ export function createFakeBackend() {
 
   const summary = (t: Table): Dataset => ({ ...t.dataset, row_count: t.rows.length })
 
-  const toCell = (value: unknown): string | null =>
-    value === null || value === undefined || value === '' ? null : String(value)
-
-  function addDataset(
-    name: string,
-    columns: string[],
-    rows: (string | null)[][] = [],
-    types: Record<string, Column['type']> = {},
-  ): Dataset {
+  function addDataset(name: string, columns: Column[], rows: CellInput[][] = []): Dataset {
     const id = crypto.randomUUID()
     // Later datasets are newer.
     const createdAt = new Date(Date.UTC(2026, 10, 1, 9, created++)).toISOString()
     const table: Table = {
       dataset: { id, display_name: name, created_at: createdAt },
-      columns: columns.map((c) => ({ name: c, type: types[c] ?? 'text' })),
-      rows: rows.map((values, i) => ({ _id: i + 1, ...Object.fromEntries(columns.map((c, j) => [c, values[j] ?? null])) })),
+      columns,
+      rows: rows.map((values, i) => ({ _id: i + 1, ...Object.fromEntries(columns.map(({ name }, j) => [name, values[j] ?? null])) })),
       nextRowId: rows.length + 1,
     }
     tables.set(id, table)
@@ -88,8 +80,8 @@ export function createFakeBackend() {
       await record(request)
       const table = tables.get(String(params.id))
       if (!table) return notFound('Dataset')
-      const values = (await request.json()) as Record<string, unknown>
-      const row: Row = { _id: table.nextRowId++, ...Object.fromEntries(table.columns.map(({ name }) => [name, toCell(values[name])])) }
+      const values = (await request.json()) as RowValues
+      const row: Row = { _id: table.nextRowId++, ...Object.fromEntries(table.columns.map(({ name }) => [name, values[name] ?? null])) }
       table.rows.push(row)
       return HttpResponse.json(row)
     }),
@@ -98,8 +90,7 @@ export function createFakeBackend() {
       await record(request)
       const row = tables.get(String(params.id))?.rows.find((r) => r._id === Number(params.rowId))
       if (!row) return notFound('Row')
-      const values = (await request.json()) as Record<string, unknown>
-      for (const [column, value] of Object.entries(values)) row[column] = toCell(value)
+      Object.assign(row, (await request.json()) as RowValues)
       return HttpResponse.json(row)
     }),
 
@@ -121,6 +112,8 @@ export function createFakeBackend() {
     rows: (datasetId: string) => tables.get(datasetId)?.rows ?? [],
   }
 }
+
+export const textColumns = (...names: string[]): Column[] => names.map((name) => ({ name, type: 'text' }))
 
 /** Builds rows like [["SO-1", "10"], ["SO-2", "20"], …] for paging tests. */
 export const numberedRows = (count: number, prefix = 'SO'): string[][] =>
