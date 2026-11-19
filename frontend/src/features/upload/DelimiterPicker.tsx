@@ -31,6 +31,7 @@ export function DelimiterPicker({ value, onChange }: { value: Delimiter; onChang
           </label>
         ))}
       </div>
+      <p className="mt-1.5 text-xs text-muted">Files saved by Excel in some regions use semicolons.</p>
     </fieldset>
   )
 }
