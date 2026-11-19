@@ -29,7 +29,8 @@ export function RowsView({ datasetId, columns, page, size, setPage, setSize }: P
   const [editing, setEditing] = useState<CellRef | null>(null)
 
   // Past the last page (after deleting its last row, or from an old link): show the last page instead.
-  const lastPage = data && !isPlaceholderData ? Math.max(1, Math.ceil(data.total / size)) : null
+  // Wait for fresh data: a cached page can predate a row just added.
+  const lastPage = data && !isPlaceholderData && !isFetching ? Math.max(1, Math.ceil(data.total / size)) : null
   useEffect(() => {
     if (lastPage !== null && page > lastPage) setPage(lastPage, { replace: true })
   }, [lastPage, page, setPage])
