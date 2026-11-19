@@ -185,6 +185,22 @@ describe('adding a row', () => {
       { method: 'PATCH', path: `/datasets/${sales.id}/rows/51`, body: { order_id: 'SO-NEW' } },
     ])
   })
+
+  it('opens the next page again after deleting a row added there', async () => {
+    const { sales } = setupSales(numberedRows(50))
+    const app = renderApp(`/datasets/${sales.id}`)
+    const { user } = app
+
+    await user.click(await screen.findByRole('button', { name: 'Add row' }))
+    await user.keyboard('{Escape}')
+    await user.click(await screen.findByRole('button', { name: 'Delete row 51' }))
+    expect(await screen.findByLabelText('order_id of row 50')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Add row' }))
+
+    expect(await screen.findByRole('textbox', { name: 'order_id of row 52' })).toHaveFocus()
+    expect(app.location()).toBe(`/datasets/${sales.id}?page=2`)
+  })
 })
 
 describe('keeping pages in sync', () => {

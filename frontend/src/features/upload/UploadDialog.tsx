@@ -42,7 +42,7 @@ export function UploadDialog({ onClose }: { onClose: () => void }) {
       <div className="flex items-start justify-between px-6 pt-5">
         <div>
           <h2 className="font-display text-2xl leading-none">{results ? 'Upload complete' : 'Upload CSV files'}</h2>
-          <p className="mt-2 text-sm text-muted">{results ? summary : 'Each file becomes its own dataset.'}</p>
+          {results && <p className="mt-2 text-sm text-muted">{summary}</p>}
         </div>
         <button type="button" className={button.icon} onClick={onClose} aria-label="Close">
           <Icon name="x" />
